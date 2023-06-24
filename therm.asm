@@ -1,8 +1,8 @@
 ;MAB8048H, 10.000MHz
 ;Warszawa 2023
-	.cr	8048
-	.tf	rom.bin,BIN
-	.lf	therm.lst
+    .cr 8048
+    .tf rom.bin,BIN
+    .lf therm.lst
 ;==================Defines=====================
 ;Pins
 ;P1
@@ -47,11 +47,11 @@ sub     .ma A,V ;Subtracts V (Rx or immediate value) from A (A = A - V)
         .em
 	
 ;Vectors
-	.no $00 ;Set jump to main at reset vector (00h)
-	jmp main
+    .no $00 ;Set jump to main at reset vector (00h)
+    jmp main
 
     .no $07 ;Set jump to timer interrupt ISR at timer interrupt vector (07h)
-	jmp timer_isr
+    jmp timer_isr
 
 main:
     clr A
@@ -87,15 +87,15 @@ display_blank   .eq %00000000 ;blank
 display_lut:
     .ot ;Open table to verify at assemble time whether LUT and last movp are on the same page
     .db %00111111 ;0
-	.db %00000110 ;1
-	.db %01011011 ;2
-	.db %01001111 ;3
-	.db %01100110 ;4
-	.db %01101101 ;5
-	.db %01111101 ;6
-	.db %00000111 ;7
-	.db %01111111 ;8
-	.db %01101111 ;9
+    .db %00000110 ;1
+    .db %01011011 ;2
+    .db %01001111 ;3
+    .db %01100110 ;4
+    .db %01101101 ;5
+    .db %01111101 ;6
+    .db %00000111 ;7
+    .db %01111111 ;8
+    .db %01101111 ;9
 
 display_update:
     jf0 display_no_error ;Check if 1-Wire bus error
@@ -223,12 +223,12 @@ display_refresh_end:
 
 ;Uses R0,R1,R4,R7
 ds18b20_get_temp:
-	call ow_reset ;Send bus reset condition
-	mov R0,#ds18b20_skip_rom 
-	call ow_write_byte ;Send skip ROM command
-	mov R0,#ds18b20_read_scratchpad 
-	call ow_write_byte ;Send read scratchpad command
-	call ow_read_byte ;Read temperature LSB
+    call ow_reset ;Send bus reset condition
+    mov R0,#ds18b20_skip_rom 
+    call ow_write_byte ;Send skip ROM command
+    mov R0,#ds18b20_read_scratchpad 
+    call ow_write_byte ;Send read scratchpad command
+    call ow_read_byte ;Read temperature LSB
     mov A,R0
     rr A
     rr A
@@ -245,19 +245,19 @@ ds18b20_get_temp:
     anl A,#%11110000 ;Compute MSB << 4
     orl A,R4 ;Merge two nibbles into integer temperature value
     mov R4,A ;Store temperature value into R4
-	call ow_reset ;Send bus reset condition
-	mov R0,#ds18b20_skip_rom ;Skip ROM
-	call ow_write_byte
-	mov R0,#ds18b20_convert_t ;Convert temp - prepare to next readout
-	call ow_write_byte
-	ret	
+    call ow_reset ;Send bus reset condition
+    mov R0,#ds18b20_skip_rom ;Skip ROM
+    call ow_write_byte
+    mov R0,#ds18b20_convert_t ;Convert temp - prepare to next readout
+    call ow_write_byte
+    ret	
 
 ;Uses F0 as error flag, R7
 ow_reset:
     clr F0 ;Set 1-Wire error flag
-	anl P1,#~ow_pin ;Clear 1-Wire pin
-	call delay_500us ;Hold low for 500us
-	orl P1,#ow_pin ;Set 1-Wire pin
+    anl P1,#~ow_pin ;Clear 1-Wire pin
+    call delay_500us ;Hold low for 500us
+    orl P1,#ow_pin ;Set 1-Wire pin
     call delay_100us ;Wait for 100us for sensor response
     in A,P1
     anl A,#ow_pin ;Probe the line
@@ -269,76 +269,76 @@ ow_reset_error:
 
 ;R0 - received byte, uses R0,R1,R7
 ow_read_byte:
-	mov R0,#0 ;Clear result
-	mov R1,#8 ;Load bit loop counter
+    mov R0,#0 ;Clear result
+    mov R1,#8 ;Load bit loop counter
 ow_read_loop:
-	mov R7,#10 ;Load delay loop counter; ~3us
-	;Shift result one bit right
-	mov A,R0 ;~1.5us
-	rr A ;~1.5us
-	mov R0,A ;~1.5us	
-	;Request read - 1-Wire pin >1us low
-	anl P1,#~ow_pin ;Clear 1-Wire pin; ~3us
-	orl P1,#ow_pin ;Set 1-Wire pin; ~3us
-	;Read bit and complete 60us timeslot
-	in A,P1 ;Read P1; ~3us
-	anl A,#ow_pin ;Read 1-Wire pin; ~3us
-	jz ow_read_zero ;~3us
+    mov R7,#10 ;Load delay loop counter; ~3us
+    ;Shift result one bit right
+    mov A,R0 ;~1.5us
+    rr A ;~1.5us
+    mov R0,A ;~1.5us	
+    ;Request read - 1-Wire pin >1us low
+    anl P1,#~ow_pin ;Clear 1-Wire pin; ~3us
+    orl P1,#ow_pin ;Set 1-Wire pin; ~3us
+    ;Read bit and complete 60us timeslot
+    in A,P1 ;Read P1; ~3us
+    anl A,#ow_pin ;Read 1-Wire pin; ~3us
+    jz ow_read_zero ;~3us
 ow_read_one:
-	mov A,R0 ;~1.5us
-	orl A,#%10000000 ;~3us
-	mov R0,A ;Set bit in result; ~1.5us
+    mov A,R0 ;~1.5us
+    orl A,#%10000000 ;~3us
+    mov R0,A ;Set bit in result; ~1.5us
 ow_read_zero:
-	djnz R7,ow_read_zero ;Wait for ~30us; ~3us	
-	djnz R1,ow_read_loop ;Receive next bit; ~3us
-	ret
+    djnz R7,ow_read_zero ;Wait for ~30us; ~3us	
+    djnz R1,ow_read_loop ;Receive next bit; ~3us
+    ret
 
 ;R0 - byte to be written, uses R0,R1,R7	
 ow_write_byte:
-	mov A,R0 ;Load byte to A
-	cpl A ;Because of 8049 limitations - there's no jnbx instruction...
-	mov R1,#8 ;Load bit loop counter
+    mov A,R0 ;Load byte to A
+    cpl A ;Because of 8049 limitations - there's no jnbx instruction...
+    mov R1,#8 ;Load bit loop counter
 ow_write_loop:
-	mov R7,#16 ;Load delay loop counter; ~3us
-	anl P1,#~ow_pin ;Clear 1-Wire pin; ~3us
-	jb0 ow_write_zero ;Check LSB, if not set - send zero; ~3us
+    mov R7,#16 ;Load delay loop counter; ~3us
+    anl P1,#~ow_pin ;Clear 1-Wire pin; ~3us
+    jb0 ow_write_zero ;Check LSB, if not set - send zero; ~3us
 ow_write_one:
-	orl P1,#ow_pin ;Set 1-Wire pin; ~3us
+    orl P1,#ow_pin ;Set 1-Wire pin; ~3us
 ow_write_zero:
-	djnz R7,ow_write_zero ;Wait for ~50us	
-	orl P1,#ow_pin ;Set 1-Wire pin; ~3us
-	rr A ;Shift byte one bit right; ~1.5us
-	djnz R1,ow_write_loop ;Write next bit; ~3us
-	ret
+    djnz R7,ow_write_zero ;Wait for ~50us	
+    orl P1,#ow_pin ;Set 1-Wire pin; ~3us
+    rr A ;Shift byte one bit right; ~1.5us
+    djnz R1,ow_write_loop ;Write next bit; ~3us
+    ret
 
 ;~100uS delay, uses and corrupts R7
 delay_100us:
-	mov R7,#29
+    mov R7,#29
 delay_100us_loop:
-	djnz R7,delay_100us_loop
-	ret
+    djnz R7,delay_100us_loop
+    ret
 
 ;~500uS delay, uses and corrupts R7
 delay_500us:
-	mov R7,#164
+    mov R7,#164
 delay_500us_loop:
-	djnz R7,delay_500us_loop
-	ret
+    djnz R7,delay_500us_loop
+    ret
 
 ;R0 - value to be split to digits, ones; R1 - tens; uses R0,R1
 byte_split:
-	mov R1,#0 ;Clear tens
+    mov R1,#0 ;Clear tens
 byte_split_div10:
-	mov A,R0 ;Load value to be split to A
-	cpl A ;Complement A
-	add A,#10 ;Add 10 (C = (R0 < 10))
-	jc byte_split_end ;If there has been carry - break
-	cpl A ;Complement A (A=R0-10)
-	mov R0,A ;Store new value in R0
-	inc R1 ;Increment tens
-	jmp byte_split_div10 ;Perform again, until R0 < 10	
+    mov A,R0 ;Load value to be split to A
+    cpl A ;Complement A
+    add A,#10 ;Add 10 (C = (R0 < 10))
+    jc byte_split_end ;If there has been carry - break
+    cpl A ;Complement A (A=R0-10)
+    mov R0,A ;Store new value in R0
+    inc R1 ;Increment tens
+    jmp byte_split_div10 ;Perform again, until R0 < 10	
 byte_split_end:
-	ret
+    ret
 
 timer_load:
     mov A,#timer_init_val
